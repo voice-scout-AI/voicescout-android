@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">voicescout-android</string>
+    <string name="btn1_main">사용자 음성 학습</string>
+    <string name="btn1_sub">내 음성 데이터를 등록하고 학습합니다.</string>
+    <string name="btn2_main">문장 음성 합성</string>
+    <string name="btn2_sub">입력한 문장을 학습된 내 음성으로 변환합니다.</string>
+    <string name="btn3_main">합성 음성 전송</string>
+    <string name="btn3_sub">생성된 음성 파일을 공유합니다.</string>
+    <string name="btn4_main">합성 음성 저장소</string>
+    <string name="btn4_sub">생성된 음성 파일을 확인하고 관리합니다.</string>
 </resources>

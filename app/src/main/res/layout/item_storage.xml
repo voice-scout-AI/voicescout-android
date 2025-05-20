@@ -12,8 +12,10 @@
 
     <TextView
         android:id="@+id/voice_name"
+        style="@style/TextStyle.ExtraBold"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="OOO의 목소리 1"
         android:textSize="20sp"
         android:textStyle="bold" />
 

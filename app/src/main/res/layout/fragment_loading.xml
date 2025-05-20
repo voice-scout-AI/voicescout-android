@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".generate.LoadingFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginVertical="10dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        tools:context=".generate.GenerateActivity">
+
+        <TextView
+            android:id="@+id/text_generate_guide"
+            android:layout_width="wrap_content"
+            android:layout_height="80dp"
+            android:lineSpacingExtra="15sp"
+            android:text="OOO의 목소리로\n발화를 생성중입니다."
+            android:textSize="25sp" />
+
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="150dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_loading" />
+
+    </LinearLayout>
+
+</FrameLayout>

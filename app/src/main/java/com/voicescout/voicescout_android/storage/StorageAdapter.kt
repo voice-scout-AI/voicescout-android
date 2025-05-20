@@ -1,19 +1,24 @@
 package com.voicescout.voicescout_android.storage
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.voicescout.voicescout_android.R
+import com.voicescout.voicescout_android.generate.GenerateActivity
 
 class StorageAdapter(val storageList: Array<String>) :
     RecyclerView.Adapter<StorageAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val voice_name: TextView
+        val voice_holder: LinearLayout
 
         init {
             voice_name = view.findViewById(R.id.voice_name)
+            voice_holder = view.findViewById(R.id.voice_item)
         }
     }
 
@@ -28,6 +33,14 @@ class StorageAdapter(val storageList: Array<String>) :
     // Replace the contents of a view (invoked by the layout manager)
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
         viewHolder.voice_name.text = storageList[position]
+
+        viewHolder.voice_holder.setOnClickListener {
+            val context = viewHolder.itemView.context
+            val intent = Intent(context, GenerateActivity::class.java)
+
+            intent.putExtra("SELECTED_VOICE", storageList[position])
+            context.startActivity(intent)
+        }
     }
 
     // Return the size of your dataset (invoked by the layout manager)

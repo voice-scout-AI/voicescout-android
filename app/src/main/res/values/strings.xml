@@ -8,4 +8,21 @@
     <string name="btn3_sub">생성된 음성 파일을 공유합니다.</string>
     <string name="btn4_main">합성 음성 저장소</string>
     <string name="btn4_sub">생성된 음성 파일을 확인하고 관리합니다.</string>
+
+    <string name="record_start">녹음 시작</string>
+    <string name="record_stop">녹음 중지</string>
+    <string name="permission_denied_message">녹음을 위해 마이크 권한이 필요합니다.</string>
+
+    <string-array name="guide_sentences">
+        <item>지금은 테스트를 위한 문장을 녹음하고 있어요.</item>
+        <item>거울아 거울아 이 세상에서 누가 제일 예쁘니?</item>
+        <item>동화 어린 왕자에서 여우가 했던 말이에요.</item>
+        <item>오늘 날씨는 맑고 기분이 아주 좋아요.</item>
+        <item>그리고 결심하게 돼요.</item>
+        <item>비트의 영감은 어디서 얻으세요?</item>
+        <item>떨어져 나가 앉은 산 위에서 나는 그대 이름을 부르노라.</item>
+        <item>책상 위에 연필과 노트가 가지런히 놓여 있어요.</item>
+        <item>혹시 시간이 되시면 잠깐 이야기 나눌 수 있을까요?</item>
+        <item>다음 주에는 중요한 발표가 예정되어 있어요.</item>
+    </string-array>
 </resources>

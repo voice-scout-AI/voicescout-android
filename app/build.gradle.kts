@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.diffplug.spotless") version "6.21.0"
+    id("org.jlleitschuh.gradle.ktlint") version "10.3.0"
+    id("org.jlleitschuh.gradle.ktlint-idea") version "10.3.0"
 }
 
 android {
@@ -26,7 +29,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -50,4 +53,20 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        ktlint("0.48.2")
+            .editorConfigOverride(
+                mapOf(
+                    "disabled_rules" to "standard:package-name",
+                ),
+            )
+    }
+    format("xml") {
+        target("src/main/res/**/*.xml")
+        prettier().config(mapOf("parser" to "xml"))
+    }
 }

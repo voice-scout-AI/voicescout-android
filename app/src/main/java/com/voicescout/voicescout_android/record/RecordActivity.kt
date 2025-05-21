@@ -22,19 +22,22 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
-class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonClickListener {
-
+class RecordActivity :
+    AppCompatActivity(),
+    RecordPageFragment.OnRecordButtonClickListener {
     private val REQUEST_PERMISSIONS = 1001
-    private val PERMISSIONS = arrayOf(
-        Manifest.permission.RECORD_AUDIO,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE // Android 10 (API 29) 미만 또는 requestLegacyExternalStorage 사용 시
-    )
+    private val PERMISSIONS =
+        arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE, // Android 10 (API 29) 미만 또는 requestLegacyExternalStorage 사용 시
+        )
 
     private lateinit var viewPager: ViewPager2
     private lateinit var pageIndicatorTextView: TextView
     private lateinit var sentences: Array<String>
 
     private var mediaRecorder: MediaRecorder? = null
+
     // 각 녹음의 임시 파일 경로를 저장할 리스트
     private val recordedTempFilePaths = mutableListOf<String>()
     private var isRecording = false
@@ -58,12 +61,14 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
     }
 
     private fun checkPermissions(): Boolean {
-        val recordAudioGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-        val writeStorageGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            true // Android 10 이상에서는 WRITE_EXTERNAL_STORAGE가 일반적으로 필요 없음 (Scoped Storage 사용 권장)
-        } else {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
-        }
+        val recordAudioGranted =
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val writeStorageGranted =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                true // Android 10 이상에서는 WRITE_EXTERNAL_STORAGE가 일반적으로 필요 없음 (Scoped Storage 사용 권장)
+            } else {
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+            }
         return recordAudioGranted && writeStorageGranted
     }
 
@@ -71,7 +76,11 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
         ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_PERMISSIONS)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray,
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_PERMISSIONS) {
             var allGranted = true
@@ -94,22 +103,24 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
         val adapter = RecordPagerAdapter(this, sentences)
         viewPager.adapter = adapter
 
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                super.onPageSelected(position)
-                updatePageIndicator(position)
-                // 페이지가 변경되면 녹음 중인 경우 중지
-                if (isRecording) {
-                    // 페이지 전환 시에는 자동으로 녹음 중지. 이 경우 파일명 입력 다이얼로그는 띄우지 않음.
-                    // 해당 임시 파일은 유효하지 않으므로 삭제.
-                    Toast.makeText(this@RecordActivity, "페이지가 변경되어 이전 녹음이 취소되었습니다.", Toast.LENGTH_SHORT).show()
-                    deleteTempRecordingFile(recordedTempFilePaths.lastOrNull()) // 마지막으로 녹음 시도했던 파일 삭제
-                    releaseMediaRecorder() // MediaRecorder 해제
+        viewPager.registerOnPageChangeCallback(
+            object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    super.onPageSelected(position)
+                    updatePageIndicator(position)
+                    // 페이지가 변경되면 녹음 중인 경우 중지
+                    if (isRecording) {
+                        // 페이지 전환 시에는 자동으로 녹음 중지. 이 경우 파일명 입력 다이얼로그는 띄우지 않음.
+                        // 해당 임시 파일은 유효하지 않으므로 삭제.
+                        Toast.makeText(this@RecordActivity, "페이지가 변경되어 이전 녹음이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                        deleteTempRecordingFile(recordedTempFilePaths.lastOrNull()) // 마지막으로 녹음 시도했던 파일 삭제
+                        releaseMediaRecorder() // MediaRecorder 해제
+                    }
+                    // 현재 활성화된 프래그먼트 업데이트
+                    currentFragment = supportFragmentManager.findFragmentByTag("f${viewPager.currentItem}") as? RecordPageFragment
                 }
-                // 현재 활성화된 프래그먼트 업데이트
-                currentFragment = supportFragmentManager.findFragmentByTag("f${viewPager.currentItem}") as? RecordPageFragment
-            }
-        })
+            },
+        )
 
         updatePageIndicator(viewPager.currentItem)
     }
@@ -152,25 +163,26 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
         val tempFilePath = File(tempDir, tempFileName).absolutePath
         recordedTempFilePaths.add(tempFilePath) // 임시 파일 경로 리스트에 추가
 
-        mediaRecorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setOutputFile(tempFilePath) // 임시 경로에 저장
+        mediaRecorder =
+            MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(tempFilePath) // 임시 경로에 저장
 
-            try {
-                prepare()
-                start()
-                isRecording = true
-                currentFragment?.updateRecordButtonState(true)
-                Toast.makeText(this@RecordActivity, "녹음 시작: ${sentences[position]}", Toast.LENGTH_SHORT).show()
-            } catch (e: IOException) {
-                e.printStackTrace()
-                Toast.makeText(this@RecordActivity, "녹음 시작 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                releaseMediaRecorder()
-                deleteTempRecordingFile(tempFilePath) // 실패 시 임시 파일 삭제
+                try {
+                    prepare()
+                    start()
+                    isRecording = true
+                    currentFragment?.updateRecordButtonState(true)
+                    Toast.makeText(this@RecordActivity, "녹음 시작: ${sentences[position]}", Toast.LENGTH_SHORT).show()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    Toast.makeText(this@RecordActivity, "녹음 시작 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                    releaseMediaRecorder()
+                    deleteTempRecordingFile(tempFilePath) // 실패 시 임시 파일 삭제
+                }
             }
-        }
     }
 
     private fun stopRecording() {
@@ -190,7 +202,6 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
                     // 모든 녹음이 완료되지 않았다면 다음 페이지로 자동 이동
                     viewPager.currentItem = viewPager.currentItem + 1
                 }
-
             } catch (stopException: RuntimeException) {
                 Toast.makeText(this@RecordActivity, "녹음 중지 오류: ${stopException.message}", Toast.LENGTH_SHORT).show()
                 // 오류 발생 시 해당 임시 파일 삭제 및 리스트에서 제거
@@ -222,12 +233,14 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
 
     // 녹음 세트의 최종 파일명을 입력받는 다이얼로그 표시
     private fun showFileNameInputDialog() {
-        val inputEditText = TextInputEditText(this).apply {
-            hint = "녹음 세트의 이름 (예: 화자_날짜)"
-            setSingleLine(true)
-        }
+        val inputEditText =
+            TextInputEditText(this).apply {
+                hint = "녹음 세트의 이름 (예: 화자_날짜)"
+                setSingleLine(true)
+            }
 
-        AlertDialog.Builder(this)
+        AlertDialog
+            .Builder(this)
             .setTitle("녹음 세트 저장")
             .setMessage("모든 녹음이 완료되었습니다. 저장할 이름을 입력해주세요.")
             .setView(inputEditText)
@@ -240,8 +253,7 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
                     showFileNameInputDialog() // 다시 다이얼로그 띄우기
                 }
                 dialog.dismiss()
-            }
-            .setNegativeButton("취소") { dialog, _ ->
+            }.setNegativeButton("취소") { dialog, _ ->
                 // 취소 시 모든 임시 파일 삭제
                 recordedTempFilePaths.forEach { filePath ->
                     deleteTempRecordingFile(filePath)
@@ -250,8 +262,7 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
                 Toast.makeText(this, "녹음 저장이 취소되었습니다.", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
                 finish() // 녹음 액티비티 종료 또는 초기 화면으로 돌아가기
-            }
-            .setCancelable(false) // 백 버튼으로 닫히지 않도록
+            }.setCancelable(false) // 백 버튼으로 닫히지 않도록
             .show()
     }
 
@@ -278,7 +289,7 @@ class RecordActivity : AppCompatActivity(), RecordPageFragment.OnRecordButtonCli
             val tempFile = File(tempPath)
             if (tempFile.exists()) {
                 // 새로운 파일명: 예: 입력값_0.mp4, 입력값_1.mp4 ...
-                val newFileName = "${sessionName}_${index}.mp4"
+                val newFileName = "${sessionName}_$index.mp4"
                 val finalFile = File(finalSaveDir, newFileName)
                 try {
                     tempFile.renameTo(finalFile) // 파일 이동 (더 효율적)

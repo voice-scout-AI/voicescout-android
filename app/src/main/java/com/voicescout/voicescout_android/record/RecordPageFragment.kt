@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment
 import com.voicescout.voicescout_android.R
 
 class RecordPageFragment : Fragment() {
-
     private val ARG_SENTENCE = "sentence"
     private val ARG_POSITION = "position"
 
@@ -26,13 +25,16 @@ class RecordPageFragment : Fragment() {
 
     companion object {
         @JvmStatic
-        fun newInstance(sentence: String, position: Int) =
-            RecordPageFragment().apply {
-                arguments = Bundle().apply {
+        fun newInstance(
+            sentence: String,
+            position: Int,
+        ) = RecordPageFragment().apply {
+            arguments =
+                Bundle().apply {
                     putString(ARG_SENTENCE, sentence)
                     putInt(ARG_POSITION, position)
                 }
-            }
+        }
     }
 
     override fun onAttach(context: Context) {
@@ -53,8 +55,9 @@ class RecordPageFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View? {
         val view = inflater.inflate(R.layout.fragment_record, container, false)
         sentenceTextView = view.findViewById(R.id.sentenceTextView)

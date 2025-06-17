@@ -11,8 +11,8 @@ import androidx.fragment.app.Fragment
 import com.voicescout.voicescout_android.R
 
 class RecordPageFragment : Fragment() {
-    private val ARG_SENTENCE = "sentence"
-    private val ARG_POSITION = "position"
+    private val argSentence = "sentence"
+    private val argPosition = "position"
 
     private var sentence: String? = null
     private var position: Int = 0
@@ -31,8 +31,8 @@ class RecordPageFragment : Fragment() {
         ) = RecordPageFragment().apply {
             arguments =
                 Bundle().apply {
-                    putString(ARG_SENTENCE, sentence)
-                    putInt(ARG_POSITION, position)
+                    putString(argSentence, sentence)
+                    putInt(argPosition, position)
                 }
         }
     }
@@ -49,8 +49,8 @@ class RecordPageFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            sentence = it.getString(ARG_SENTENCE)
-            position = it.getInt(ARG_POSITION)
+            sentence = it.getString(argSentence)
+            position = it.getInt(argPosition)
         }
     }
 

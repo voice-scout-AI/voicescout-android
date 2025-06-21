@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.voicescout.voicescout_android.ApiConstants
 import com.voicescout.voicescout_android.R
 import com.voicescout.voicescout_android.generate.GenerateActivity
 import kotlinx.coroutines.CoroutineScope
@@ -78,7 +79,7 @@ class StorageAdapter(
             try {
                 val client = OkHttpClient()
                 val request = Request.Builder()
-                    .url("http://10.0.2.2:9880/users/$userId")
+                    .url(ApiConstants.getUserDeleteUrl(userId))
                     .delete()
                     .build()
 

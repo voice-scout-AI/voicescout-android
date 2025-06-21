@@ -15,6 +15,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.textfield.TextInputEditText
+import com.voicescout.voicescout_android.ApiConstants
 import com.voicescout.voicescout_android.R
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -130,19 +131,22 @@ class RecordActivity :
                     // 사용자가 수동으로 페이지를 변경한 경우에만 녹음 중지
                     // 현재 녹음 중이고, 녹음 중인 페이지와 다른 페이지로 이동한 경우
                     if (isRecording && currentRecordingPosition != -1 && currentRecordingPosition != position) {
-                        Log.d("RecordActivity", "수동 페이지 변경으로 인한 녹음 취소 - 이전: $currentRecordingPosition, 현재: $position")
-                        
+                        Log.d(
+                            "RecordActivity",
+                            "수동 페이지 변경으로 인한 녹음 취소 - 이전: $currentRecordingPosition, 현재: $position"
+                        )
+
                         // 현재 녹음 중인 파일을 찾아서 삭제
                         val cancelledFilePath = recordedTempFilePaths.find { path ->
                             path.endsWith("voice$currentRecordingPosition.mp4")
                         }
-                        
+
                         if (cancelledFilePath != null) {
                             deleteTempRecordingFile(cancelledFilePath)
                             recordedTempFilePaths.remove(cancelledFilePath)
                             Log.d("RecordActivity", "취소된 녹음 파일 삭제: $cancelledFilePath")
                         }
-                        
+
                         Toast.makeText(
                             this@RecordActivity,
                             "페이지가 변경되어 이전 녹음이 취소되었습니다.",
@@ -206,7 +210,7 @@ class RecordActivity :
     private fun startRecording(position: Int) {
         // MediaRecorder가 이미 사용 중인지 확인
         if (mediaRecorder != null) {
-            android.util.Log.w("RecordActivity", "이미 녹음이 진행 중입니다.")
+            Log.w("RecordActivity", "이미 녹음이 진행 중입니다.")
             return
         }
 
@@ -234,7 +238,7 @@ class RecordActivity :
         val tempFile = File(tempFilePath)
         if (tempFile.exists()) {
             tempFile.delete()
-            android.util.Log.d("RecordActivity", "기존 임시 파일 직접 삭제: $tempFilePath")
+            Log.d("RecordActivity", "기존 임시 파일 직접 삭제: $tempFilePath")
         }
 
         try {
@@ -246,14 +250,14 @@ class RecordActivity :
                     setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
                     setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                     setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                    
+
                     // 고품질 음성 녹음을 위한 설정
                     setAudioSamplingRate(48000) // 48kHz 샘플링 레이트
                     setAudioEncodingBitRate(128000) // 128kbps 비트레이트
                     setAudioChannels(1) // 모노 채널 (음성용)
-                    
+
                     setOutputFile(tempFilePath)
-                    
+
                     Log.d("RecordActivity", "고품질 설정 적용: 48kHz, 128kbps, 모노")
                 } catch (e: Exception) {
                     Log.w("RecordActivity", "고품질 설정 실패, 기본 설정으로 fallback", e)
@@ -266,7 +270,7 @@ class RecordActivity :
                     setAudioEncodingBitRate(64000) // 음성용 적절한 비트레이트
                     setAudioChannels(1) // 모노
                     setOutputFile(tempFilePath)
-                    
+
                     Log.d("RecordActivity", "기본 품질 설정 적용: 44.1kHz, 64kbps, 모노")
                 }
 
@@ -296,7 +300,7 @@ class RecordActivity :
 
     private fun stopRecording() {
         if (!isRecording || mediaRecorder == null) {
-            android.util.Log.w("RecordActivity", "녹음이 진행 중이지 않습니다.")
+            Log.w("RecordActivity", "녹음이 진행 중이지 않습니다.")
             return
         }
 
@@ -326,7 +330,8 @@ class RecordActivity :
             // 현재 프래그먼트에 녹음 완료 상태 설정
             val currentPage = viewPager.currentItem
             val fragmentTag = "f$currentPage"
-            val currentFragment = supportFragmentManager.findFragmentByTag(fragmentTag) as? RecordPageFragment
+            val currentFragment =
+                supportFragmentManager.findFragmentByTag(fragmentTag) as? RecordPageFragment
             currentFragment?.setRecordedState(true)
 
             // 모든 문장을 다 녹음했는지 확인
@@ -352,12 +357,12 @@ class RecordActivity :
         if (currentRecordingPosition != -1) {
             updateFragmentUI(currentRecordingPosition, false)
         }
-        
+
         mediaRecorder?.release()
         mediaRecorder = null
         isRecording = false
         currentRecordingPosition = -1
-        
+
         Log.d("RecordActivity", "MediaRecorder 해제 및 상태 리셋 완료")
     }
 
@@ -551,7 +556,7 @@ class RecordActivity :
                 val requestBody = requestBodyBuilder.build()
 
                 val request = Request.Builder()
-                    .url("http://10.0.2.2:9880/upload/voice") // 안드로이드 에뮬레이터에서 로컬호스트는 10.0.2.2
+                    .url(ApiConstants.UPLOAD_VOICE_URL)
                     .post(requestBody)
                     .build()
 

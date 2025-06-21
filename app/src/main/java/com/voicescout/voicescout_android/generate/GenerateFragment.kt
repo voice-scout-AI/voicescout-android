@@ -18,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import com.voicescout.voicescout_android.ApiConstants
 import com.voicescout.voicescout_android.R
 import com.voicescout.voicescout_android.result.TTSResultFragment
 import kotlinx.coroutines.CoroutineScope
@@ -113,7 +114,7 @@ class GenerateFragment : Fragment() {
                 val request =
                     Request
                         .Builder()
-                        .url("http://10.0.2.2:9880/tts")
+                        .url(ApiConstants.TTS_URL)
                         .post(body)
                         .build()
 

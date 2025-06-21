@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.voicescout.voicescout_android.R
@@ -20,8 +21,10 @@ class RecordPageFragment : Fragment() {
     private lateinit var sentenceTextView: TextView
     private lateinit var recordButton: Button
     private lateinit var recordingStatusTextView: TextView
+    private lateinit var restartIcon: ImageView
 
     private var listener: OnRecordButtonClickListener? = null
+    private var isRecorded = false // 녹음 완료 상태를 추적
 
     companion object {
         @JvmStatic
@@ -63,10 +66,24 @@ class RecordPageFragment : Fragment() {
         sentenceTextView = view.findViewById(R.id.sentenceTextView)
         recordButton = view.findViewById(R.id.recordButton)
         recordingStatusTextView = view.findViewById(R.id.recordingStatusTextView)
+        restartIcon = view.findViewById(R.id.restartIcon)
 
         sentenceTextView.text = sentence
 
         recordButton.setOnClickListener {
+            if (isRecorded) {
+                // 녹음 완료 상태에서는 다음 페이지로 이동
+                listener?.onNextButtonClick(position)
+            } else {
+                // 녹음 중이거나 녹음 전 상태에서는 녹음 버튼 동작
+                listener?.onRecordButtonClick(position)
+            }
+        }
+
+        restartIcon.setOnClickListener {
+            // 재녹음
+            isRecorded = false
+            updateRecordButtonState(false)
             listener?.onRecordButtonClick(position)
         }
 
@@ -79,14 +96,30 @@ class RecordPageFragment : Fragment() {
                 recordButton.setText(R.string.record_stop)
                 recordingStatusTextView.text = "녹음 중..."
                 recordingStatusTextView.visibility = View.VISIBLE
+                restartIcon.visibility = View.GONE
+            } else if (isRecorded) {
+                // 녹음 완료 상태
+                recordButton.text = "다음\n "  // 아래에 빈 문자 추가로 높이 맞춤
+                recordingStatusTextView.text = " "
+                recordingStatusTextView.visibility = View.VISIBLE
+                restartIcon.visibility = View.VISIBLE
             } else {
+                // 녹음 전 상태
                 recordButton.setText(R.string.record_start)
-                recordingStatusTextView.visibility = View.GONE
+                recordingStatusTextView.text = " "
+                recordingStatusTextView.visibility = View.VISIBLE
+                restartIcon.visibility = View.GONE
             }
         }
     }
 
+    fun setRecordedState(recorded: Boolean) {
+        isRecorded = recorded
+        updateRecordButtonState(false)
+    }
+
     interface OnRecordButtonClickListener {
         fun onRecordButtonClick(position: Int)
+        fun onNextButtonClick(position: Int)
     }
 }

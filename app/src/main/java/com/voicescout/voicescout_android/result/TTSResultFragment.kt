@@ -3,6 +3,7 @@ package com.voicescout.voicescout_android.result
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -50,14 +51,43 @@ class TTSResultFragment : Fragment() {
 
         playButton.setOnClickListener {
             try {
+                // 파일 존재 여부 확인
+                Log.d("AudioDebug", "오디오 파일 경로: ${audioFile.absolutePath}")
+                Log.d("AudioDebug", "파일 존재 여부: ${audioFile.exists()}")
+                Log.d("AudioDebug", "파일 크기: ${audioFile.length()} bytes")
+                Log.d("AudioDebug", "파일 읽기 가능: ${audioFile.canRead()}")
+
+                if (!audioFile.exists()) {
+                    Toast.makeText(context, "오디오 파일이 존재하지 않습니다.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                if (audioFile.length() == 0L) {
+                    Toast.makeText(context, "오디오 파일이 비어있습니다.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                Log.d("AudioDebug", "MediaPlayer 시작")
                 MediaPlayer().apply {
                     setDataSource(audioFile.absolutePath)
                     prepare()
+                    setOnCompletionListener {
+                        Log.d("AudioDebug", "재생 완료")
+                        release()
+                    }
+                    setOnErrorListener { mp, what, extra ->
+                        Log.e("AudioDebug", "MediaPlayer 에러: what=$what, extra=$extra")
+                        Toast.makeText(context, "오디오 재생 에러: $what", Toast.LENGTH_SHORT).show()
+                        false
+                    }
                     start()
                 }
+                Log.d("AudioDebug", "MediaPlayer 재생 시작됨")
+                Toast.makeText(context, "오디오 재생 시작", Toast.LENGTH_SHORT).show()
+
             } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(context, "오디오 재생 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                Log.e("AudioDebug", "오디오 재생 예외 발생", e)
+                Toast.makeText(context, "오디오 재생 중 오류: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
 
@@ -81,7 +111,9 @@ class TTSResultFragment : Fragment() {
             val resInfos = packageManager.queryIntentActivities(intent, 0)
             val smsApps =
                 resInfos.filter {
-                    it.activityInfo.packageName.contains("mms") || it.activityInfo.packageName.contains("message")
+                    it.activityInfo.packageName.contains("mms") || it.activityInfo.packageName.contains(
+                        "message"
+                    )
                 }
 
             if (smsApps.isNotEmpty()) {

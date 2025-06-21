@@ -29,6 +29,7 @@
         android:layout_height="wrap_content">
 
         <ImageButton
+            android:id="@+id/btn_restart"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginRight="20dp"
@@ -37,6 +38,7 @@
             android:src="@drawable/icon_restart" />
 
         <ImageButton
+            android:id="@+id/btn_cancel"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:background="@color/white"

@@ -11,9 +11,10 @@ class GenerateActivity : AppCompatActivity() {
         setContentView(R.layout.activity_generate)
 
         val selectedVoice = intent.getStringExtra("SELECTED_VOICE") ?: ""
+        val voiceId = intent.getIntExtra("VOICE_ID", 0)
 
         supportFragmentManager.commit {
-            replace(R.id.generate_frame, GenerateFragment.newInstance(selectedVoice))
+            replace(R.id.generate_frame, GenerateFragment.newInstance(selectedVoice, voiceId))
             setReorderingAllowed(true)
             addToBackStack("")
         }

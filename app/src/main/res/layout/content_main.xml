@@ -71,6 +71,16 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/locationTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="위치를 확인 중입니다..."
+        android:layout_margin="15dp"
+        android:textColor="@color/point"
+        android:textSize="12sp"
+        android:layout_gravity="center" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="25dp"

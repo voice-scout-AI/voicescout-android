@@ -30,5 +30,6 @@
             <include layout="@layout/nav_content_main" />
 
         </LinearLayout>
+
     </com.google.android.material.navigation.NavigationView>
 </androidx.drawerlayout.widget.DrawerLayout>

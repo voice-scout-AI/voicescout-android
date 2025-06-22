@@ -4,8 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
@@ -15,6 +17,9 @@ import com.voicescout.voicescout_android.common.BannerAdapter
 import com.voicescout.voicescout_android.common.BannerCard
 import com.voicescout.voicescout_android.record.RecordActivity
 import com.voicescout.voicescout_android.storage.StorageActivity
+import okhttp3.*
+import org.json.JSONObject
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
     private lateinit var drawerLayout: DrawerLayout
@@ -22,10 +27,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bannerViewPager: ViewPager2
     private lateinit var indicatorLayout: LinearLayout
     private lateinit var bannerAdapter: BannerAdapter
+    private lateinit var locationTextView: TextView
     
     private val bannerHandler = Handler(Looper.getMainLooper())
     private var bannerRunnable: Runnable? = null
     private val AUTO_SLIDE_DELAY = 3000L // 3초마다 자동 슬라이드
+
+    private val client = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,8 +44,10 @@ class MainActivity : AppCompatActivity() {
         menuButton = findViewById(R.id.toolbar_menu)
         bannerViewPager = findViewById(R.id.bannerViewPager)
         indicatorLayout = findViewById(R.id.bannerIndicatorLayout)
+        locationTextView = findViewById(R.id.locationTextView)
 
         setupBanner()
+        fetchUserLocation()
 
         findViewById<LinearLayout>(R.id.btn_record_view).setOnClickListener {
             val intent = Intent(this, RecordActivity::class.java)
@@ -134,6 +144,37 @@ class MainActivity : AppCompatActivity() {
         bannerRunnable?.let { bannerHandler.removeCallbacks(it) }
         startAutoSlide()
     }
+
+    private fun fetchUserLocation() {
+        val request = Request.Builder()
+            .url("https://ipinfo.io/json")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                val bodyStr = response.body?.string() ?: ""
+                val json = JSONObject(bodyStr)
+                val city = json.optString("city")
+                val country = json.optString("country")
+                val ip = json.optString("ip")
+
+                runOnUiThread {
+                    if (city.isNullOrEmpty() || country.isNullOrEmpty()) {
+                        locationTextView.text = "위치 정보를 불러올 수 없습니다 (IP: $ip)"
+                    } else {
+                        locationTextView.text = "현재 위치: $city, $country (IP: $ip)"
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    locationTextView.text = "위치 정보를 불러오는 데 실패했어요"
+                }
+            }
+        })
+    }
+
 
     override fun onResume() {
         super.onResume()

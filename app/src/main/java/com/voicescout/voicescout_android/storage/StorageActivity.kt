@@ -1,5 +1,6 @@
 package com.voicescout.voicescout_android.storage
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.ImageView
@@ -10,6 +11,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.voicescout.voicescout_android.ApiConstants
+import com.voicescout.voicescout_android.MainActivity
 import com.voicescout.voicescout_android.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ class StorageActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var menuButton: ImageView
+    private lateinit var logoButton: ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +34,7 @@ class StorageActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.storage_rv)
         drawerLayout = findViewById(R.id.drawer_layout)
         menuButton = findViewById(R.id.toolbar_menu)
+        logoButton = findViewById(R.id.toolbar_logo)
 
         // Setup RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -38,6 +42,12 @@ class StorageActivity : AppCompatActivity() {
         // Setup drawer menu button
         menuButton.setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        logoButton.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
         }
 
         loadUsers()

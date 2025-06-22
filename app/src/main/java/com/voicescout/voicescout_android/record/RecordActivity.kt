@@ -1,21 +1,32 @@
 package com.voicescout.voicescout_android.record
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatButton
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.textfield.TextInputEditText
 import com.voicescout.voicescout_android.ApiConstants
+import com.voicescout.voicescout_android.MainActivity
 import com.voicescout.voicescout_android.R
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -38,6 +49,10 @@ class RecordActivity :
     private lateinit var viewPager: ViewPager2
     private lateinit var pageIndicatorTextView: TextView
     private lateinit var sentences: Array<String>
+
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var menuButton: ImageView
+    private lateinit var logoButton: ImageView
 
     private var mediaRecorder: MediaRecorder? = null
 
@@ -63,6 +78,20 @@ class RecordActivity :
             requestPermissions()
         } else {
             setupViewPager()
+        }
+
+        drawerLayout = findViewById(R.id.drawer_layout)
+        menuButton = findViewById(R.id.toolbar_menu)
+        logoButton = findViewById(R.id.toolbar_logo)
+
+        menuButton.setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        logoButton.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
         }
     }
 
@@ -401,38 +430,44 @@ class RecordActivity :
 
     // 녹음 세트의 최종 파일명을 입력받는 다이얼로그 표시
     private fun showFileNameInputDialog() {
-        val inputEditText =
-            TextInputEditText(this).apply {
-                hint = "녹음 세트의 이름 (예: 화자_날짜)"
-                setSingleLine(true)
-            }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_input_filename, null)
 
-        AlertDialog
-            .Builder(this)
-            .setTitle("녹음 세트 저장")
-            .setMessage("모든 녹음이 완료되었습니다. 저장할 이름을 입력해주세요.")
-            .setView(inputEditText)
-            .setPositiveButton("저장") { dialog, _ ->
-                val enteredFileName = inputEditText.text.toString().trim()
-                if (enteredFileName.isNotEmpty()) {
-                    saveAllRecordings(enteredFileName)
-                } else {
-                    Toast.makeText(this, "파일명을 입력해주세요.", Toast.LENGTH_SHORT).show()
-                    showFileNameInputDialog() // 다시 다이얼로그 띄우기
+        val inputEditText = dialogView.findViewById<EditText>(R.id.fileNameEditText)
+        val saveButton = dialogView.findViewById<AppCompatButton>(R.id.saveButton)
+        val cancelButton = dialogView.findViewById<Button>(R.id.cancelButton)
+
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create().apply {
+                show()
+
+                saveButton.setOnClickListener {
+                    val enteredFileName = inputEditText.text.toString().trim()
+                    if (enteredFileName.isNotEmpty()) {
+                        saveAllRecordings(enteredFileName)
+                        dismiss()
+                    } else {
+                        Toast.makeText(context, "파일명을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                        dismiss()
+                        showFileNameInputDialog()
+                    }
                 }
-                dialog.dismiss()
-            }.setNegativeButton("취소") { dialog, _ ->
-                // 취소 시 모든 임시 파일 삭제
-                recordedTempFilePaths.forEach { filePath ->
-                    deleteTempRecordingFile(filePath)
+
+                cancelButton.setOnClickListener {
+                    recordedTempFilePaths.forEach { filePath ->
+                        deleteTempRecordingFile(filePath)
+                    }
+                    recordedTempFilePaths.clear()
+                    Toast.makeText(context, "녹음 저장이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                    dismiss()
+                    finish()
                 }
-                recordedTempFilePaths.clear()
-                Toast.makeText(this, "녹음 저장이 취소되었습니다.", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-                finish() // 녹음 액티비티 종료 또는 초기 화면으로 돌아가기
-            }.setCancelable(false) // 백 버튼으로 닫히지 않도록
-            .show()
+
+                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            }
     }
+
 
     // 모든 임시 녹음 파일을 최종 폴더로 이동/복사하고 이름 변경
     private fun saveAllRecordings(sessionName: String) {

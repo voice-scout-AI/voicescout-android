@@ -1,0 +1,64 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dialogRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/rounded_background"
+    android:padding="25dp">
+
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="녹음 세트 저장"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="모든 녹음이 완료되었습니다. 저장할 이름을 입력해주세요."
+        android:textSize="15sp"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/fileNameEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:hint="파일명 ex) 화자_날짜"
+        android:inputType="text"
+        android:background="@drawable/rounded_edittext"
+        android:padding="20dp"
+        android:layout_marginTop="20dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="20dp">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="취소"
+            android:textColor="@color/subBlue"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:background="@android:color/transparent" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/saveButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="저장"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:background="@drawable/rounded_button_blue"
+            android:backgroundTint="@null" />
+    </LinearLayout>
+</LinearLayout>

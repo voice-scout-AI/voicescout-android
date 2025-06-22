@@ -4,15 +4,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.viewpager2.widget.ViewPager2
+import com.voicescout.voicescout_android.common.BannerAdapter
+import com.voicescout.voicescout_android.common.BannerCard
 import com.voicescout.voicescout_android.record.RecordActivity
 import com.voicescout.voicescout_android.storage.StorageActivity
 

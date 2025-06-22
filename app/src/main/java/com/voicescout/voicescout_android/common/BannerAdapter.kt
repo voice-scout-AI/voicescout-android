@@ -1,12 +1,13 @@
-package com.voicescout.voicescout_android
+package com.voicescout.voicescout_android.common
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
+import com.voicescout.voicescout_android.R
 
-class BannerAdapter(private val bannerCards: List<BannerCard>) : 
+class BannerAdapter(private val bannerCards: List<BannerCard>) :
     RecyclerView.Adapter<BannerAdapter.BannerViewHolder>() {
 
     class BannerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

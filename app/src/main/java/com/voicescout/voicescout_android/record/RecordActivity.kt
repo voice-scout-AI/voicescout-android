@@ -2,6 +2,7 @@ package com.voicescout.voicescout_android.record
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Bundle
@@ -48,8 +49,34 @@ class RecordActivity :
     private var currentRecordingPosition: Int = -1 // 현재 녹음 중인 문장의 인덱스
     private var isAutoMovingPage: Boolean = false // 자동 페이지 이동 중인지 확인하는 플래그
 
-    private val httpClient = OkHttpClient()
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
     private val executor = Executors.newSingleThreadExecutor()
+    
+    private lateinit var audioManager: AudioManager
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        Log.d("RecordActivity", "★ 오디오 포커스 변경: $focusChange")
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                Log.d("RecordActivity", "★ 오디오 포커스 완전 상실 - 녹음 중단")
+                if (isRecording) {
+                    stopRecording()
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                Log.d("RecordActivity", "★ 오디오 포커스 일시적 상실 - 녹음 중단")
+                if (isRecording) {
+                    stopRecording()
+                }
+            }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                Log.d("RecordActivity", "★ 오디오 포커스 복구")
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +85,9 @@ class RecordActivity :
         viewPager = findViewById(R.id.viewPager)
         pageIndicatorTextView = findViewById(R.id.pageIndicatorTextView)
         sentences = resources.getStringArray(R.array.guide_sentences)
+        
+        // AudioManager 초기화
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         if (!checkPermissions()) {
             requestPermissions()
@@ -133,7 +163,7 @@ class RecordActivity :
                     if (isRecording && currentRecordingPosition != -1 && currentRecordingPosition != position) {
                         Log.d(
                             "RecordActivity",
-                            "수동 페이지 변경으로 인한 녹음 취소 - 이전: $currentRecordingPosition, 현재: $position"
+                            "★ 수동 페이지 변경으로 인한 녹음 취소 - 이전: $currentRecordingPosition, 현재: $position"
                         )
 
                         // 현재 녹음 중인 파일을 찾아서 삭제
@@ -166,8 +196,23 @@ class RecordActivity :
         pageIndicatorTextView.text = indicatorText
     }
 
+    override fun onPause() {
+        super.onPause()
+        Log.d("RecordActivity", "★ onPause 호출됨 - 녹음 중: $isRecording")
+        if (isRecording) {
+            Log.d("RecordActivity", "★ onPause에서 녹음 중단")
+            stopRecording()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("RecordActivity", "onResume 호출됨")
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        Log.d("RecordActivity", "onDestroy 호출됨")
         releaseMediaRecorder()
         executor.shutdown()
         // 앱 종료 시 아직 저장되지 않은 임시 파일들 삭제
@@ -178,19 +223,24 @@ class RecordActivity :
 
     // RecordPageFragment.OnRecordButtonClickListener 인터페이스 구현
     override fun onRecordButtonClick(position: Int) {
+        Log.d("RecordActivity", "onRecordButtonClick - position: $position, isRecording: $isRecording, currentRecordingPosition: $currentRecordingPosition")
+        
         // 현재 페이지와 다른 위치에서 녹음 중인 경우에만 체크
         if (isRecording && currentRecordingPosition != position && currentRecordingPosition != -1) {
             // 현재 페이지가 실제로 녹음 중인 페이지와 다른 경우만 경고
             val currentPage = viewPager.currentItem
             if (currentPage != currentRecordingPosition) {
+                Log.d("RecordActivity", "다른 문장 녹음 중이므로 현재 요청 무시")
                 Toast.makeText(this, "다른 문장 녹음을 먼저 완료해주세요.", Toast.LENGTH_SHORT).show()
                 return
             }
         }
 
         if (isRecording) {
+            Log.d("RecordActivity", "녹음 중지 요청 - 버튼 클릭으로 인한 중지")
             stopRecording() // 녹음 중지
         } else {
+            Log.d("RecordActivity", "녹음 시작 요청")
             startRecording(position) // 녹음 시작
         }
     }
@@ -244,10 +294,38 @@ class RecordActivity :
         try {
             Log.d("RecordActivity", "녹음 시작 - 임시 파일 경로: $tempFilePath")
 
+            // 오디오 포커스 요청
+            val result = audioManager.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+            
+            if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                Log.w("RecordActivity", "오디오 포커스 요청 실패")
+                Toast.makeText(this, "오디오 포커스를 얻을 수 없습니다", Toast.LENGTH_SHORT).show()
+                return
+            }
+            
+            Log.d("RecordActivity", "오디오 포커스 획득 성공")
+
             mediaRecorder = MediaRecorder().apply {
+                // 에러 리스너 설정으로 예기치 않은 녹음 중단 감지
+                setOnErrorListener { mr, what, extra ->
+                    Log.e("RecordActivity", "★ MediaRecorder 에러 발생! what: $what, extra: $extra")
+                    runOnUiThread {
+                        Toast.makeText(this@RecordActivity, "녹음 에러 발생: $what", Toast.LENGTH_SHORT).show()
+                        stopRecording()
+                    }
+                }
+
+                setOnInfoListener { mr, what, extra ->
+                    Log.d("RecordActivity", "★ MediaRecorder 정보: what: $what, extra: $extra")
+                }
+
                 try {
                     // 음성 인식에 최적화된 오디오 소스 사용
-                    setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
                     setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                     setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
 
@@ -304,6 +382,10 @@ class RecordActivity :
             return
         }
 
+        Log.d("RecordActivity", "stopRecording 호출됨 - 현재 녹음 위치: $currentRecordingPosition")
+        val stackTrace = Thread.currentThread().stackTrace
+        Log.d("RecordActivity", "stopRecording 호출 스택: ${stackTrace.take(5).joinToString { it.toString() }}")
+
         try {
             mediaRecorder?.apply {
                 stop()
@@ -333,6 +415,10 @@ class RecordActivity :
             val currentFragment =
                 supportFragmentManager.findFragmentByTag(fragmentTag) as? RecordPageFragment
             currentFragment?.setRecordedState(true)
+
+            // 오디오 포커스 해제
+            audioManager.abandonAudioFocus(audioFocusChangeListener)
+            Log.d("RecordActivity", "오디오 포커스 해제됨")
 
             // 모든 문장을 다 녹음했는지 확인
             if (recordedTempFilePaths.size == sentences.size) {
@@ -436,14 +522,21 @@ class RecordActivity :
 
     // 모든 임시 녹음 파일을 최종 폴더로 이동/복사하고 이름 변경
     private fun saveAllRecordings(sessionName: String) {
+        Log.d("RecordActivity", "★ 파일 저장 시작 - 세션명: $sessionName, 임시파일 수: ${recordedTempFilePaths.size}")
+        
         // 최종 저장될 디렉토리 (예: /Android/data/com.your.package.name/files/AudioSessions/입력값/)
         val finalSaveDir =
             File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "AudioSessions/$sessionName")
+        Log.d("RecordActivity", "★ 최종 저장 디렉토리: ${finalSaveDir.absolutePath}")
+        
         if (!finalSaveDir.exists()) {
-            finalSaveDir.mkdirs()
+            Log.d("RecordActivity", "★ 디렉토리가 존재하지 않아 생성 시도")
+            val created = finalSaveDir.mkdirs()
+            Log.d("RecordActivity", "★ 디렉토리 생성 결과: $created")
         }
 
         if (!finalSaveDir.exists()) {
+            Log.e("RecordActivity", "★ 저장 폴더 생성 실패: ${finalSaveDir.absolutePath}")
             Toast.makeText(this, "저장 폴더 생성 실패: ${finalSaveDir.absolutePath}", Toast.LENGTH_LONG)
                 .show()
             // 폴더 생성 실패 시 임시 파일 삭제
@@ -453,58 +546,89 @@ class RecordActivity :
             recordedTempFilePaths.clear()
             return
         }
+        
+        // 디렉토리 권한 확인
+        if (!finalSaveDir.canWrite()) {
+            Log.e("RecordActivity", "★ 저장 폴더 쓰기 권한 없음: ${finalSaveDir.absolutePath}")
+            Toast.makeText(this, "저장 폴더에 쓰기 권한이 없습니다", Toast.LENGTH_LONG).show()
+            return
+        }
 
         var successCount = 0
         val savedFiles = mutableListOf<File>()
 
         recordedTempFilePaths.forEachIndexed { index, tempPath ->
             val tempFile = File(tempPath)
-            Log.d("RecordActivity", "처리 중인 임시 파일: $tempPath, 존재: ${tempFile.exists()}")
+            Log.d("RecordActivity", "★ 처리 중인 임시 파일: $tempPath")
+            Log.d("RecordActivity", "★ 임시파일 존재: ${tempFile.exists()}, 크기: ${if (tempFile.exists()) tempFile.length() else 0}")
 
             if (tempFile.exists()) {
+                // 파일이 비어있는지 확인
+                if (tempFile.length() == 0L) {
+                    Log.w("RecordActivity", "★ 임시 파일이 비어있음: $tempPath")
+                    Toast.makeText(this, "빈 녹음 파일 발견: ${tempFile.name}", Toast.LENGTH_SHORT).show()
+                    return@forEachIndexed
+                }
+                
                 // 파일명을 voice{position}으로 찾기
                 val voicePosition =
                     tempFile.name.removePrefix("voice").removeSuffix(".mp4").toIntOrNull() ?: index
                 val newFileName = "voice$voicePosition.mp4"
                 val finalFile = File(finalSaveDir, newFileName)
 
+                Log.d("RecordActivity", "★ 최종 파일 경로: ${finalFile.absolutePath}")
+
                 // 기존 최종 파일이 있다면 삭제
                 if (finalFile.exists()) {
-                    finalFile.delete()
-                    Log.d("RecordActivity", "기존 최종 파일 삭제: ${finalFile.absolutePath}")
+                    val deleted = finalFile.delete()
+                    Log.d("RecordActivity", "★ 기존 최종 파일 삭제: ${finalFile.absolutePath}, 성공: $deleted")
                 }
 
-                Log.d("RecordActivity", "최종 파일 경로: ${finalFile.absolutePath}")
-
                 try {
+                    // 먼저 부모 디렉토리가 존재하는지 확인
+                    if (!finalFile.parentFile?.exists()!!) {
+                        Log.w("RecordActivity", "★ 부모 디렉토리가 존재하지 않음, 생성 시도")
+                        finalFile.parentFile?.mkdirs()
+                    }
+                    
                     // renameTo는 실패할 수 있으므로 반환값 확인
+                    Log.d("RecordActivity", "★ renameTo 시도: ${tempFile.absolutePath} → ${finalFile.absolutePath}")
                     val success = tempFile.renameTo(finalFile)
+                    Log.d("RecordActivity", "★ renameTo 결과: $success, 최종파일 존재: ${finalFile.exists()}")
+                    
                     if (success && finalFile.exists()) {
-                        savedFiles.add(finalFile)
-                        successCount++
-                        Log.d("RecordActivity", "파일 이동 성공: ${finalFile.absolutePath}")
-                    } else {
-                        // renameTo 실패 시 복사 방식으로 재시도
-                        Log.w("RecordActivity", "renameTo 실패, 복사 방식으로 재시도")
-                        tempFile.copyTo(finalFile, overwrite = true)
-                        if (finalFile.exists()) {
-                            tempFile.delete() // 복사 성공 시 원본 삭제
+                        val finalSize = finalFile.length()
+                        Log.d("RecordActivity", "★ 파일 이동 성공: ${finalFile.absolutePath}, 크기: $finalSize")
+                        if (finalSize > 0) {
                             savedFiles.add(finalFile)
                             successCount++
-                            Log.d(
-                                "RecordActivity",
-                                "파일 복사 성공: ${finalFile.absolutePath}"
-                            )
                         } else {
-                            Log.e(
-                                "RecordActivity",
-                                "파일 복사도 실패: ${finalFile.absolutePath}"
-                            )
+                            Log.w("RecordActivity", "★ 이동된 파일이 비어있음")
+                        }
+                    } else {
+                        // renameTo 실패 시 복사 방식으로 재시도
+                        Log.w("RecordActivity", "★ renameTo 실패, 복사 방식으로 재시도")
+                        Log.d("RecordActivity", "★ 복사 시도: ${tempFile.absolutePath} → ${finalFile.absolutePath}")
+                        
+                        tempFile.copyTo(finalFile, overwrite = true)
+                        val finalExists = finalFile.exists()
+                        val finalSize = if (finalExists) finalFile.length() else 0
+                        
+                        Log.d("RecordActivity", "★ 복사 완료: 존재=$finalExists, 크기=$finalSize")
+                        
+                        if (finalExists && finalSize > 0) {
+                            val tempDeleted = tempFile.delete() // 복사 성공 시 원본 삭제
+                            Log.d("RecordActivity", "★ 원본 임시파일 삭제: $tempDeleted")
+                            savedFiles.add(finalFile)
+                            successCount++
+                            Log.d("RecordActivity", "★ 파일 복사 성공: ${finalFile.absolutePath}")
+                        } else {
+                            Log.e("RecordActivity", "★ 파일 복사 실패: ${finalFile.absolutePath}")
                             throw Exception("파일 이동 및 복사 모두 실패")
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("RecordActivity", "파일 저장 실패: ${tempFile.name}", e)
+                    Log.e("RecordActivity", "★ 파일 저장 실패: ${tempFile.name}", e)
                     Toast.makeText(
                         this,
                         "파일 저장 실패: ${tempFile.name} - ${e.message}",
@@ -512,15 +636,19 @@ class RecordActivity :
                     ).show()
                 }
             } else {
-                Log.e("RecordActivity", "임시 파일이 존재하지 않음: $tempPath")
+                Log.e("RecordActivity", "★ 임시 파일이 존재하지 않음: $tempPath")
                 Toast.makeText(this, "임시 파일이 존재하지 않음: ${File(tempPath).name}", Toast.LENGTH_SHORT)
                     .show()
             }
         }
 
+        Log.d("RecordActivity", "★ 파일 저장 완료 - 성공: $successCount, 전체: ${sentences.size}")
+        
         if (successCount == sentences.size) {
+            Log.d("RecordActivity", "★ 모든 파일 저장 성공, 업로드 시작")
             uploadVoiceFiles(sessionName, savedFiles)
         } else {
+            Log.w("RecordActivity", "★ 일부 파일 저장 실패 - 성공: $successCount, 전체: ${sentences.size}")
             Toast.makeText(
                 this,
                 "일부 녹음 파일 저장에 실패했습니다. ($successCount/${sentences.size})",
@@ -532,6 +660,16 @@ class RecordActivity :
     }
 
     private fun uploadVoiceFiles(sessionName: String, files: List<File>) {
+        // 업로드 진행 다이얼로그 표시
+        val progressDialog = AlertDialog.Builder(this)
+            .setTitle("파일 업로드 중")
+            .setMessage("음성 파일을 서버로 업로드하고 있습니다...\n잠시만 기다려주세요.")
+            .setCancelable(false)
+            .create()
+        
+        progressDialog.show()
+        Log.d("RecordActivity", "★ 업로드 진행 다이얼로그 표시")
+        
         executor.execute {
             try {
                 val requestBodyBuilder = MultipartBody.Builder()
@@ -560,21 +698,51 @@ class RecordActivity :
                     .post(requestBody)
                     .build()
 
+                Log.d("RecordActivity", "★ HTTP 요청 시작 - URL: ${ApiConstants.UPLOAD_VOICE_URL}")
+                val startTime = System.currentTimeMillis()
+                
                 val response = httpClient.newCall(request).execute()
+                val endTime = System.currentTimeMillis()
+                val duration = endTime - startTime
+                
+                Log.d("RecordActivity", "★ HTTP 응답 받음 - 소요시간: ${duration}ms")
+                Log.d("RecordActivity", "★ 응답 코드: ${response.code}, 성공여부: ${response.isSuccessful}")
+                
+                val responseBody = response.body?.string()
+                Log.d("RecordActivity", "★ 응답 내용: $responseBody")
 
                 runOnUiThread {
+                    progressDialog.dismiss()
+                    
                     if (response.isSuccessful) {
+                        Log.d("RecordActivity", "★ 업로드 성공!")
                         Toast.makeText(this, "음성 파일 업로드 완료!", Toast.LENGTH_LONG).show()
                     } else {
-                        Toast.makeText(this, "업로드 실패: ${response.code}", Toast.LENGTH_LONG).show()
+                        Log.e("RecordActivity", "★ 업로드 실패 - 응답코드: ${response.code}")
+                        Toast.makeText(this, "업로드 실패: ${response.code}\n${responseBody?.take(100)}", Toast.LENGTH_LONG).show()
                     }
                     finish() // 녹음 액티비티 종료
                 }
 
-            } catch (e: Exception) {
+            } catch (e: java.net.SocketTimeoutException) {
+                Log.e("RecordActivity", "★ 업로드 타임아웃 발생", e)
                 runOnUiThread {
-                    Toast.makeText(this, "업로드 중 오류 발생", Toast.LENGTH_LONG).show()
-                    Log.d("abc", "${e.message}")
+                    progressDialog.dismiss()
+                    Toast.makeText(this, "업로드 타임아웃\n네트워크 연결을 확인해주세요", Toast.LENGTH_LONG).show()
+                    finish()
+                }
+            } catch (e: java.net.ConnectException) {
+                Log.e("RecordActivity", "★ 서버 연결 실패", e)
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    Toast.makeText(this, "서버 연결 실패\n인터넷 연결을 확인해주세요", Toast.LENGTH_LONG).show()
+                    finish()
+                }
+            } catch (e: Exception) {
+                Log.e("RecordActivity", "★ 업로드 중 예외 발생", e)
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    Toast.makeText(this, "업로드 중 오류 발생: ${e.javaClass.simpleName}\n${e.message?.take(50)}", Toast.LENGTH_LONG).show()
                     finish()
                 }
             }
